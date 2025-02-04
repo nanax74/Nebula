@@ -1,16 +1,17 @@
 ﻿using System;
-using System.Text;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Windows.Forms;
-using System.Net.Sockets;
 using Newtonsoft.Json;
-using System.Reflection;
 
 namespace Nebula
 {
@@ -52,6 +53,7 @@ namespace Nebula
             SetRichTextBoxEnabled();
             UpdateControls();
         }
+
         public class ListItem
         {
             public string Name { get; set; }
@@ -81,10 +83,47 @@ namespace Nebula
             //textBoxIP.Text = IPAddr.ToString();
             //comboBoxMVViewMode.Text = Mode.ToString();
 
+            // Nebulaのコードを格納しているアセンブリを取得
+            Assembly asm = Assembly.GetExecutingAssembly();
+
+            // Nebulaのバージョン情報を取得
+            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm.Location);
+
+            // フォームのタイトルに反映
+            Text = $"{fvi.FileDescription} {fvi.ProductVersion}";
+
+            // 設定ファイルのディレクトリの存在確認
+            if (!Directory.Exists(Constants.SETTINGS_FOOTER))
+            {
+                // 設定ファイルのディレクトリ作成
+                Directory.CreateDirectory(Constants.SETTINGS_FOOTER);
+            }
+
+            // 設定ファイルの存在確認
+            if (!File.Exists(Constants.FORM1_FILE_NAME))
+            {
+                // 設定ファイルを作成
+                File.Create(Constants.FORM1_FILE_NAME).Close();
+
+                // デフォルトの設定値を作成
+                Data datas = new Data
+                {
+                    IPAddress = "192.168.",
+                    MVAddress = "0x10000000",
+                    AutoUpdate = true,
+                    ViewMode = "Hexadecimal"
+                };
+
+                // シリアライズして設定ファイルへ書き込む文字列を作成
+                string jsonStr = JsonConvert.SerializeObject(datas, Formatting.Indented);
+                // 設定ファイルへ書き込み
+                File.WriteAllText(Constants.FORM1_FILE_NAME, jsonStr);
+            }
+
             // 設定ファイルの内容を文字列として読み込み
-            string jsonStr = await File.ReadAllTextAsync(jsonPath);
+            string jsonStr1 = await File.ReadAllTextAsync(jsonPath);
             // 読み込んだ文字列をSettingクラスを使ってデシリアライズ(JSON形式のデータからC#が扱えるものに変換すること)
-            Setting setting = JsonConvert.DeserializeObject<Setting>(jsonStr);
+            Setting setting = JsonConvert.DeserializeObject<Setting>(jsonStr1);
 
             // それぞれ反映
             textBoxIP.Text = setting.IPAddress;
@@ -276,10 +315,10 @@ namespace Nebula
 
         private void UpdateCheckedListBoxItem()
         {
-            if(checkedListBoxCode.SelectedItem != null)
+            if (checkedListBoxCode.SelectedItem != null)
             {
                 ListBox selectedItem = checkedListBoxCode.SelectedItem as ListBox;
-                if(selectedItem != null)
+                if (selectedItem != null)
                 {
 
                 }
@@ -301,7 +340,7 @@ namespace Nebula
                     listBoxTag.Items.Clear();
                     string[] items = selectedItem.Tag.Split(new[] { '\n' }, StringSplitOptions.None); // 改行で分割
 
-                    foreach(string item in items)
+                    foreach (string item in items)
                     {
                         listBoxTag.Items.Add(item);
                     }
@@ -650,7 +689,7 @@ namespace Nebula
                         string returnValue = formInputText.ReturnValue;
                         listBoxTag.Items.Add(returnValue);
                         string tagString = string.Join("\n", listBoxTag.Items.Cast<string>());
-                        selectedItem.Tag = tagString; 
+                        selectedItem.Tag = tagString;
                         await XML.SaveXMLAsync("tag", tagString, checkedListBoxCode.SelectedIndex);
                     }
                 }
