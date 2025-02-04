@@ -17,7 +17,6 @@ namespace Nebula
 {
     public partial class Nebula : Form
     {
-        private readonly string jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", "setting.json");
         private System.Timers.Timer _timer;
         private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
         private uint StartMVAddress;
@@ -121,7 +120,7 @@ namespace Nebula
             }
 
             // 設定ファイルの内容を文字列として読み込み
-            string jsonStr1 = await File.ReadAllTextAsync(jsonPath);
+            string jsonStr1 = await File.ReadAllTextAsync(Constants.FORM1_FILE_NAME);
             // 読み込んだ文字列をSettingクラスを使ってデシリアライズ(JSON形式のデータからC#が扱えるものに変換すること)
             Setting setting = JsonConvert.DeserializeObject<Setting>(jsonStr1);
 
@@ -165,7 +164,7 @@ namespace Nebula
             // シリアライズして設定ファイルへ書き込む文字列を作成
             string jsonStr = JsonConvert.SerializeObject(setting, Formatting.Indented);
             // 設定ファイルへ書き込み
-            await File.WriteAllTextAsync(jsonPath, jsonStr);
+            await File.WriteAllTextAsync(Constants.FORM1_FILE_NAME, jsonStr);
         }
 
         private async void Nebula_FormClosing(object sender, FormClosingEventArgs e)
