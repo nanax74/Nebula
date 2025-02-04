@@ -18,7 +18,6 @@ namespace Nebula
     public partial class Nebula : Form
     {
         private System.Timers.Timer _timer;
-        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
         private uint StartMVAddress;
         private string StartMVAddressExpression;
         private CancellationTokenSource _debounceTokenSource;
@@ -87,9 +86,12 @@ namespace Nebula
 
             // Nebulaのバージョン情報を取得
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm.Location);
+            // 「Nebula+」の後にコミット番号？が入っているので削除
+            int index = fvi.ProductVersion.IndexOf('+');
+            string result = fvi.ProductVersion.Substring(0, index);
 
             // フォームのタイトルに反映
-            Text = $"{fvi.FileDescription} {fvi.ProductVersion}";
+            Text = $"{fvi.FileDescription} {result}";
 
             // 設定ファイルのディレクトリの存在確認
             if (!Directory.Exists(Constants.SETTINGS_FOOTER))
@@ -105,7 +107,7 @@ namespace Nebula
                 File.Create(Constants.FORM1_FILE_NAME).Close();
 
                 // デフォルトの設定値を作成
-                Data datas = new Data
+                Data data = new Data
                 {
                     IPAddress = "192.168.",
                     MVAddress = "0x10000000",
@@ -114,7 +116,7 @@ namespace Nebula
                 };
 
                 // シリアライズして設定ファイルへ書き込む文字列を作成
-                string jsonStr = JsonConvert.SerializeObject(datas, Formatting.Indented);
+                string jsonStr = JsonConvert.SerializeObject(data, Formatting.Indented);
                 // 設定ファイルへ書き込み
                 File.WriteAllText(Constants.FORM1_FILE_NAME, jsonStr);
             }
@@ -122,13 +124,13 @@ namespace Nebula
             // 設定ファイルの内容を文字列として読み込み
             string jsonStr1 = await File.ReadAllTextAsync(Constants.FORM1_FILE_NAME);
             // 読み込んだ文字列をSettingクラスを使ってデシリアライズ(JSON形式のデータからC#が扱えるものに変換すること)
-            Setting setting = JsonConvert.DeserializeObject<Setting>(jsonStr1);
+            Data data1 = JsonConvert.DeserializeObject<Data>(jsonStr1);
 
             // それぞれ反映
-            textBoxIP.Text = setting.IPAddress;
-            textBoxMVAddress.Text = setting.MVAddress;
-            checkBoxMVAutoUpdate.Checked = setting.AutoUpdate;
-            comboBoxMVViewMode.Text = setting.ViewMode;
+            textBoxIP.Text = data1.IPAddress;
+            textBoxMVAddress.Text = data1.MVAddress;
+            checkBoxMVAutoUpdate.Checked = data1.AutoUpdate;
+            comboBoxMVViewMode.Text = data1.ViewMode;
 
             // DataGirdViewのチラつきを防止
             // DataGridViewのTypeを取得
@@ -143,14 +145,14 @@ namespace Nebula
 
         private void ValidateInputs()
         {
-            textBoxIP.BackColor = Regex.IsMatch(textBoxIP.Text, IPRegexPattern) ? Color.Lime : Color.Red;
-            textBoxMVAddress.BackColor = Regex.IsMatch(textBoxMVAddress.Text, HexRegexPattern) ? Color.Lime : Color.Red;
+            textBoxIP.BackColor = Regex.IsMatch(textBoxIP.Text, Constants.IPRegexPattern) ? Color.Lime : Color.Red;
+            textBoxMVAddress.BackColor = Regex.IsMatch(textBoxMVAddress.Text, Constants.HexRegexPattern) ? Color.Lime : Color.Red;
         }
 
         private async Task SaveSettingsAsync()
         {
             // Settingクラスを使って、もろもろのプロパティを取得(テキストやチェック状態)
-            Setting setting = new Setting
+            Data setting = new Data
             {
                 IPAddress = textBoxIP.Text,
                 MVAddress = textBoxMVAddress.Text,
@@ -176,7 +178,7 @@ namespace Nebula
 
         private async Task UpdateAsync()
         {
-            if (!Semaphore.Wait(0)) return;
+            if (!Constants.Semaphore.Wait(0)) return;
 
             try
             {
@@ -189,7 +191,7 @@ namespace Nebula
             }
             finally
             {
-                Semaphore.Release();
+                Constants.Semaphore.Release();
             }
         }
 
@@ -280,7 +282,7 @@ namespace Nebula
 
         private async void ButtonMVUpdate_Click(object sender, EventArgs e)
         {
-            if (!Semaphore.Wait(0))
+            if (!Constants.Semaphore.Wait(0))
             {
                 MessageBox.Show("現在他の操作が進行中です。もう一度お試しください。", "通知", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -296,7 +298,7 @@ namespace Nebula
             }
             finally
             {
-                Semaphore.Release();
+                Constants.Semaphore.Release();
             }
         }
 
@@ -706,17 +708,6 @@ namespace Nebula
                 await XML.SaveXMLAsync("tag", tagString, checkedListBoxCode.SelectedIndex);
             }
         }
-
-        public class Setting
-        {
-            public string IPAddress { get; set; }
-            public string MVAddress { get; set; }
-            public bool AutoUpdate { get; set; }
-            public string ViewMode { get; set; }
-        }
-
-        private const string IPRegexPattern = @"^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$";
-        private const string HexRegexPattern = "^[0-9A-Fa-f]{8}$";
 
         public static NetworkStream stream;
         private TcpClient client;
