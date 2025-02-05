@@ -14,7 +14,7 @@ using static Nebula.Nebula;
 
 namespace Nebula
 {
-    public class TCPGecko
+    public static class TCPGecko
     {
         public static async Task<uint> ReadUInt32(uint address)
         {
@@ -423,7 +423,7 @@ namespace Nebula
         }
 
         // リソースファイルを一時ファイルに展開する
-        private static async Task ExtractResourceToFile(string resourceName, string outputPath)
+        private static async Task ResourceInit(string resourceName, string outputPath)
         {
             // リソースストリームを取得
             using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
@@ -451,27 +451,27 @@ namespace Nebula
                 Directory.CreateDirectory(ppcDirectory);
             }
 
+            // powerpc-eabiツールチェーンの埋め込みリソース名
+            string assemblerResource = "Nebula.powerpc-eabi-as.exe"; // powerpc-eabi-asの埋め込みリソース名
+            string nameListResource = "Nebula.powerpc-eabi-nm.exe";       // nmの埋め込みリソース名
+            string objcopyResource = "Nebula.powerpc-eabi-objcopy.exe"; // powerpc-eabi-objcopyの埋め込みリソース名
+
+            // powerpc-eabiツールチェーンをアプリケーションディレクトリに展開
+            string assemblerPath = Path.Combine(ppcDirectory, "powerpc-eabi-as.exe");
+            string nameListPath = Path.Combine(ppcDirectory, "powerpc-eabi-nm.exe");
+            string objcopyPath = Path.Combine(ppcDirectory, "powerpc-eabi-objcopy.exe");
+
+            await ResourceInit(assemblerResource, assemblerPath);
+            await ResourceInit(nameListResource, nameListPath);
+            await ResourceInit(objcopyResource, objcopyPath);
+
             // 各ファイルパスを設定
             string tempInputFile = Path.Combine(ppcDirectory, "code.s");
             string tempOutputFileO = Path.Combine(ppcDirectory, "code.o");
             string tempOutputFileBin = Path.Combine(ppcDirectory, "code.bin");
 
-            // powerpc-eabiツールチェーンの埋め込みリソース名
-            string assemblerResource = "Nebula.powerpc-eabi-as.exe"; // powerpc-eabi-asの埋め込みリソース名
-            string nmResource = "Nebula.powerpc-eabi-nm.exe";       // nmの埋め込みリソース名
-            string objcopyResource = "Nebula.powerpc-eabi-objcopy.exe"; // powerpc-eabi-objcopyの埋め込みリソース名
-
-            // powerpc-eabiツールチェーンをアプリケーションディレクトリに展開
-            string assemblerPath = Path.Combine(ppcDirectory, "powerpc-eabi-as.exe");
-            string nmPath = Path.Combine(ppcDirectory, "powerpc-eabi-nm.exe");
-            string objcopyPath = Path.Combine(ppcDirectory, "powerpc-eabi-objcopy.exe");
-
-            await ExtractResourceToFile(assemblerResource, assemblerPath);
-            await ExtractResourceToFile(nmResource, nmPath);
-            await ExtractResourceToFile(objcopyResource, objcopyPath);
-
             // アセンブリコードをファイルに保存（最後に改行を追加）
-            File.WriteAllText(tempInputFile, assemblyCode + Environment.NewLine);
+            await File.WriteAllTextAsync(tempInputFile, assemblyCode + Environment.NewLine);
 
             string errors;
 
@@ -484,7 +484,7 @@ namespace Nebula
             }
 
             // nmを使って未定義のシンボルをチェック
-            errors = await RunProcess(nmPath, $"\"{tempOutputFileO}\"");
+            errors = await RunProcess(nameListPath, $"\"{tempOutputFileO}\"");
 
             // "U "で始まる未定義のシンボルを抽出
             var undefinedSymbols = errors
@@ -510,20 +510,19 @@ namespace Nebula
             byte[] binData = await File.ReadAllBytesAsync(tempOutputFileBin);
 
             // 8バイト単位で改行し、4バイトごとにスペースを挿入
-            var formattedOutput = new StringBuilder();
+            StringBuilder formattedOutput = new();
             for (int i = 0; i < binData.Length; i += 8)
             {
                 // 8バイト分のデータを取得
-                var chunk = binData.Skip(i).Take(8).ToArray();
+                byte[] chunk = binData.Skip(i).Take(8).ToArray();
 
                 // 前半4バイトと後半4バイトをそれぞれ取得
-                var firstPart = string.Concat(chunk.Take(4).Select(b => $"{b:X2}"));
-                var secondPart = string.Concat(chunk.Skip(4).Take(4).Select(b => $"{b:X2}"));
+                string firstPart = string.Concat(chunk.Take(4).Select(b => $"{b:X2}"));
+                string secondPart = string.Concat(chunk.Skip(4).Take(4).Select(b => $"{b:X2}"));
 
                 // フォーマットして出力
                 formattedOutput.AppendLine($"{firstPart} {secondPart}");
             }
-
 
             return formattedOutput.ToString().TrimEnd();
         }

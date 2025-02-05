@@ -22,6 +22,9 @@ namespace Nebula
         private string StartMVAddressExpression;
         private CancellationTokenSource _debounceTokenSource;
 
+        //他クラスからアクセスするためのプロパティ
+        public CheckedListBox CheckedListBoxCode => checkedListBoxCode;
+
         public Nebula()
         {
             InitializeComponent();
@@ -47,20 +50,9 @@ namespace Nebula
         {
             await LoadSettingsAsync();
             StartMVAddressExpression = textBoxMVAddress.Text;
-            await XML.LoadCheckedListBoxFromXMLAsync(checkedListBoxCode);
+            await XML.LoadCheckedListBoxFromXMLAsync(this);
             SetRichTextBoxEnabled();
             UpdateControls();
-        }
-
-        public class ListItem
-        {
-            public string Name { get; set; }
-            public string Code { get; set; }
-            public string MachineCode { get; set; }
-            public string Comment { get; set; }
-            public string Tag { get; set; }
-            public bool Enabled { get; set; }
-            public override string ToString() => Name;
         }
 
         private async Task LoadSettingsAsync()
@@ -107,7 +99,7 @@ namespace Nebula
                 File.Create(Constants.FORM1_FILE_NAME).Close();
 
                 // デフォルトの設定値を作成
-                Data data = new Data
+                SettingData data = new SettingData
                 {
                     IPAddress = "192.168.",
                     MVAddress = "0x10000000",
@@ -124,7 +116,7 @@ namespace Nebula
             // 設定ファイルの内容を文字列として読み込み
             string jsonStr1 = await File.ReadAllTextAsync(Constants.FORM1_FILE_NAME);
             // 読み込んだ文字列をSettingクラスを使ってデシリアライズ(JSON形式のデータからC#が扱えるものに変換すること)
-            Data data1 = JsonConvert.DeserializeObject<Data>(jsonStr1);
+            SettingData data1 = JsonConvert.DeserializeObject<SettingData>(jsonStr1);
 
             // それぞれ反映
             textBoxIP.Text = data1.IPAddress;
@@ -152,7 +144,7 @@ namespace Nebula
         private async Task SaveSettingsAsync()
         {
             // Settingクラスを使って、もろもろのプロパティを取得(テキストやチェック状態)
-            Data setting = new Data
+            SettingData setting = new SettingData
             {
                 IPAddress = textBoxIP.Text,
                 MVAddress = textBoxMVAddress.Text,
@@ -199,11 +191,11 @@ namespace Nebula
         {
             if (stream != null)
             {
-                // CheckedItemsCollectionをList<ListItem>に変換
-                List<ListItem> listItems = checkedListBoxCode.CheckedItems.Cast<ListItem>().ToList();
+                // CheckedItemsCollectionをList<CodeData>に変換
+                List<CodeData> listItems = checkedListBoxCode.CheckedItems.Cast<CodeData>().ToList();
 
-                // 各ListItemに対して非同期処理を実行
-                foreach (ListItem listItem in listItems)
+                // 各CodeDataに対して非同期処理を実行
+                foreach (CodeData listItem in listItems)
                 {
                     if (listItem.MachineCode == null)
                     {
@@ -330,7 +322,7 @@ namespace Nebula
         {
             if (checkedListBoxCode.SelectedItem != null)
             {
-                ListItem selectedItem = checkedListBoxCode.SelectedItem as ListItem;
+                CodeData selectedItem = checkedListBoxCode.SelectedItem as CodeData;
                 if (selectedItem != null)
                 {
                     _isTextChangedManually_Code = false;
@@ -556,7 +548,7 @@ namespace Nebula
 
             try
             {
-                ListItem selectedItem = checkedListBoxCode.SelectedItem as ListItem;
+                CodeData selectedItem = checkedListBoxCode.SelectedItem as CodeData;
                 if (selectedItem != null)
                 {
                     await XML.SaveXMLAsync("code", richTextBoxCode.Text, checkedListBoxCode.SelectedIndex);
@@ -587,7 +579,7 @@ namespace Nebula
 
             try
             {
-                ListItem selectedItem = checkedListBoxCode.SelectedItem as ListItem;
+                CodeData selectedItem = checkedListBoxCode.SelectedItem as CodeData;
                 if (selectedItem != null)
                 {
                     await XML.SaveXMLAsync("comment", richTextBoxComment.Text, checkedListBoxCode.SelectedIndex);
@@ -627,7 +619,7 @@ namespace Nebula
 
                 await XML.AddCodeAsync(checkedListBoxCode.SelectedIndex, name, code, comment, tag, enabled, token);
 
-                var listItem = new ListItem { Name = name, Code = code, Comment = comment, Tag = tag, Enabled = enabled };
+                var listItem = new CodeData { Name = name, Code = code, Comment = comment, Tag = tag, Enabled = enabled };
                 checkedListBoxCode.Items.Add(listItem, listItem.Enabled);
 
                 SetRichTextBoxEnabled();
@@ -659,7 +651,7 @@ namespace Nebula
 
         private async void ButtonReloadCodeList_Click(object sender, EventArgs e)
         {
-            await XML.LoadCheckedListBoxFromXMLAsync(checkedListBoxCode);
+            await XML.LoadCheckedListBoxFromXMLAsync(this);
         }
 
         private async void RenameToolStripMenuItem_Click(object sender, EventArgs e)
@@ -671,7 +663,7 @@ namespace Nebula
                 {
                     string returnValue = formInputText.ReturnValue;
                     await XML.SaveXMLAsync("name", returnValue, checkedListBoxCode.SelectedIndex);
-                    await XML.LoadCheckedListBoxFromXMLAsync(checkedListBoxCode);
+                    await XML.LoadCheckedListBoxFromXMLAsync(this);
                     UpdateControls();
                 }
             }
@@ -679,7 +671,7 @@ namespace Nebula
 
         private async void ButtonAddTag_Click(object sender, EventArgs e)
         {
-            ListItem selectedItem = checkedListBoxCode.SelectedItem as ListItem;
+            CodeData selectedItem = checkedListBoxCode.SelectedItem as CodeData;
             if (selectedItem != null)
             {
                 using (FormInputText formInputText = new FormInputText())
@@ -699,7 +691,7 @@ namespace Nebula
 
         private async void ButtonRemoveTag_Click(object sender, EventArgs e)
         {
-            ListItem selectedItem = checkedListBoxCode.SelectedItem as ListItem;
+            CodeData selectedItem = checkedListBoxCode.SelectedItem as CodeData;
             if (selectedItem != null)
             {
                 listBoxTag.Items.Remove(listBoxTag.SelectedItem);

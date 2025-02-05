@@ -3,7 +3,7 @@
     /// <summary>
     /// 設定ファイルのデータ構造定義クラス
     /// </summary>
-    public class Data
+    public class SettingData
     {
         /// <summary>
         /// IPアドレス
