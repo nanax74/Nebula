@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Text;
 using System.IO;
 using System.Linq;
-using System.Xml.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Collections.Generic;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace Nebula
 {
@@ -68,10 +67,11 @@ namespace Nebula
                 await EnsureXmlFileExistsAsync();
 
                 // 非同期でXMLを読み込む
-                using StreamReader reader = new StreamReader(_xmlFilePath, Encoding.Unicode);
+                using FileStream fileStream = new FileStream(_xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using StreamReader stream = new StreamReader(fileStream, Encoding.Unicode);
                 using StreamWriter writer = new StreamWriter(_xmlFilePath, false, Encoding.Unicode);
 
-                string xmlContent = await reader.ReadToEndAsync();
+                string xmlContent = await stream.ReadToEndAsync();
 
                 XDocument xdoc = XDocument.Parse(xmlContent);
 

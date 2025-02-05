@@ -55,6 +55,10 @@ namespace Nebula
             UpdateControls();
         }
 
+        /// <summary>
+        /// 設定ファイルの読み込み
+        /// </summary>
+        /// <returns><see cref="Task"/></returns>
         private async Task LoadSettingsAsync()
         {
             // データクラスを使用しないパターン
@@ -99,7 +103,7 @@ namespace Nebula
                 File.Create(Constants.FORM1_FILE_NAME).Close();
 
                 // デフォルトの設定値を作成
-                SettingData data = new SettingData
+                SettingData setting = new SettingData
                 {
                     IPAddress = "192.168.",
                     MVAddress = "0x10000000",
@@ -108,21 +112,21 @@ namespace Nebula
                 };
 
                 // シリアライズして設定ファイルへ書き込む文字列を作成
-                string jsonStr = JsonConvert.SerializeObject(data, Formatting.Indented);
+                string jsonStr = JsonConvert.SerializeObject(setting, Formatting.Indented);
                 // 設定ファイルへ書き込み
-                File.WriteAllText(Constants.FORM1_FILE_NAME, jsonStr);
+                await File.WriteAllTextAsync(Constants.FORM1_FILE_NAME, jsonStr);
             }
 
             // 設定ファイルの内容を文字列として読み込み
             string jsonStr1 = await File.ReadAllTextAsync(Constants.FORM1_FILE_NAME);
             // 読み込んだ文字列をSettingクラスを使ってデシリアライズ(JSON形式のデータからC#が扱えるものに変換すること)
-            SettingData data1 = JsonConvert.DeserializeObject<SettingData>(jsonStr1);
+            SettingData setting1 = JsonConvert.DeserializeObject<SettingData>(jsonStr1);
 
             // それぞれ反映
-            textBoxIP.Text = data1.IPAddress;
-            textBoxMVAddress.Text = data1.MVAddress;
-            checkBoxMVAutoUpdate.Checked = data1.AutoUpdate;
-            comboBoxMVViewMode.Text = data1.ViewMode;
+            textBoxIP.Text = setting1.IPAddress;
+            textBoxMVAddress.Text = setting1.MVAddress;
+            checkBoxMVAutoUpdate.Checked = setting1.AutoUpdate;
+            comboBoxMVViewMode.Text = setting1.ViewMode;
 
             // DataGirdViewのチラつきを防止
             // DataGridViewのTypeを取得
@@ -141,6 +145,10 @@ namespace Nebula
             textBoxMVAddress.BackColor = Regex.IsMatch(textBoxMVAddress.Text, Constants.HexRegexPattern) ? Color.Lime : Color.Red;
         }
 
+        /// <summary>
+        /// 設定ファイルに設定を保存
+        /// </summary>
+        /// <returns><see cref="Task"/></returns>
         private async Task SaveSettingsAsync()
         {
             // Settingクラスを使って、もろもろのプロパティを取得(テキストやチェック状態)
