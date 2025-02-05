@@ -88,10 +88,10 @@ namespace Nebula
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm.Location);
             // 「Nebula+」の後にコミット番号？が入っているので削除
             int index = fvi.ProductVersion.IndexOf('+');
-            string result = fvi.ProductVersion.Substring(0, index);
+            string version = fvi.ProductVersion.Substring(0, index);
 
             // フォームのタイトルに反映
-            Text = $"{fvi.FileDescription} {result}";
+            Text = $"{fvi.FileDescription} {version}";
 
             // 設定ファイルのディレクトリの存在確認
             if (!Directory.Exists(Constants.SETTINGS_FOOTER))
