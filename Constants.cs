@@ -10,7 +10,7 @@ namespace Nebula
         /// <summary>
         /// 設定ファイルのパス
         /// </summary>
-        public const string SETTINGS_FOOTER = "Settings\\";
+        public const string SETTINGS_FOOTER = "Settings/";
 
         /// <summary>
         /// Form1の設定が記載されたファイル
@@ -35,16 +35,16 @@ namespace Nebula
         /// <summary>
         /// ディレクトリのパス
         /// </summary>
-        public static readonly string _directoryPath = "codes";
+        public const string CODES_FOOTER = "codes/";
 
         /// <summary>
-        /// XMLファイルのパス
+        /// コードXMLファイルのパス
         /// </summary>
-        public static readonly string _xmlFilePath = "codes/codes.xml";
+        public const string CODES_FILE_NAME = $"{CODES_FOOTER}codes.xml";
 
         /// <summary>
         /// キャンセルトークンソース
         /// </summary>
-        public static CancellationTokenSource _saveCancellationTokenSource = new CancellationTokenSource();
+        public static readonly CancellationTokenSource _saveCancellationTokenSource = new CancellationTokenSource();
     }
 }
