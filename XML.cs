@@ -12,16 +12,14 @@ namespace Nebula
 {
     public static class XML
     {
-        private static readonly string _directoryPath = "codes";            // ディレクトリのパス
-        private static readonly string _xmlFilePath = "codes/codes.xml";    // XMLファイルのパス
-        private static CancellationTokenSource _saveCancellationTokenSource = new CancellationTokenSource();    // キャンセルトークンソース
-        private static readonly SemaphoreSlim _fileLock = new SemaphoreSlim(1, 1);                              // ファイルアクセスのセマフォ
-
         private static async Task EnsureXmlFileExistsAsync()
         {
-            if (!Directory.Exists(_directoryPath)) Directory.CreateDirectory(_directoryPath);   // ディレクトリが存在しない場合は作成
+            if (!Directory.Exists(Constants._directoryPath))
+            {
+                Directory.CreateDirectory(Constants._directoryPath);   // ディレクトリが存在しない場合は作成
+            }
 
-            if (!File.Exists(_xmlFilePath))
+            if (!File.Exists(Constants._xmlFilePath))
             {
                 await InitializeXmlFileAsync();
             }
@@ -30,15 +28,13 @@ namespace Nebula
                 try
                 {
                     // ファイルが存在する場合、内容を確認
-                    using (var stream = new FileStream(_xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (var reader = new StreamReader(stream))
+                    using FileStream stream = new FileStream(Constants._xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    using StreamReader reader = new StreamReader(stream);
+                    XDocument xdoc = await XDocument.LoadAsync(reader, LoadOptions.None, CancellationToken.None);
+                    if (xdoc.Root == null || xdoc.Root.Name != "codes")
                     {
-                        var xdoc = await XDocument.LoadAsync(reader, LoadOptions.None, CancellationToken.None);
-                        if (xdoc.Root == null || xdoc.Root.Name != "codes")
-                        {
-                            // ルート要素が存在しないか、期待されるルート要素でない場合は初期化
-                            await InitializeXmlFileAsync();
-                        }
+                        // ルート要素が存在しないか、期待されるルート要素でない場合は初期化
+                        await InitializeXmlFileAsync();
                     }
                 }
                 catch (XmlException)
@@ -49,17 +45,28 @@ namespace Nebula
             }
         }
 
-        // XMLファイルを初期化するヘルパーメソッド
+        /// <summary>
+        /// XMLファイルを初期化するヘルパーメソッド
+        /// </summary>
+        /// <returns></returns>
         private static async Task InitializeXmlFileAsync()
         {
-            using (StreamWriter writer = new StreamWriter(_xmlFilePath, false, Encoding.Unicode))
-            {
-                XDocument xdoc = new XDocument(new XElement("codes"));
-                await writer.WriteAsync(xdoc.ToString());
-            }
+            using StreamWriter writer = new StreamWriter(Constants._xmlFilePath, false, Encoding.Unicode);
+            XDocument xdoc = new XDocument(new XElement("codes"));
+            await writer.WriteAsync(xdoc.ToString());
         }
 
-        // Add new code entry to XML
+        /// <summary>
+        /// XMLファイルに新しいコードエントリを追加
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="name"></param>
+        /// <param name="code"></param>
+        /// <param name="comment"></param>
+        /// <param name="tag"></param>
+        /// <param name="isEnabled"></param>
+        /// <param name="cancellationToken">操作を取り消す通知</param>
+        /// <returns></returns>
         public static async Task AddCodeAsync(int index, string name, string code, string comment, string tag, bool isEnabled, CancellationToken cancellationToken)
         {
             try
@@ -67,11 +74,11 @@ namespace Nebula
                 await EnsureXmlFileExistsAsync();
 
                 // 非同期でXMLを読み込む
-                using FileStream fileStream = new FileStream(_xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using StreamReader stream = new StreamReader(fileStream, Encoding.Unicode);
-                using StreamWriter writer = new StreamWriter(_xmlFilePath, false, Encoding.Unicode);
+                using FileStream fileStream = new FileStream(Constants._xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using StreamReader reader = new StreamReader(fileStream, Encoding.Unicode);
+                using StreamWriter writer = new StreamWriter(Constants._xmlFilePath, false, Encoding.Unicode);
 
-                string xmlContent = await stream.ReadToEndAsync();
+                string xmlContent = await reader.ReadToEndAsync(cancellationToken);
 
                 XDocument xdoc = XDocument.Parse(xmlContent);
 
@@ -98,13 +105,13 @@ namespace Nebula
             try
             {
                 await EnsureXmlFileExistsAsync();
-                var xdoc = await Task.Run(() => XDocument.Load(_xmlFilePath, LoadOptions.None));
+                XDocument xdoc = await Task.Run(() => XDocument.Load(Constants._xmlFilePath, LoadOptions.None));
 
-                var entries = xdoc.Descendants("entry").ToList();
+                System.Collections.Generic.List<XElement> entries = xdoc.Descendants("entry").ToList();
                 if (index >= 0 && index < entries.Count)
                 {
                     entries[index].Remove();
-                    await Task.Run(() => xdoc.Save(_xmlFilePath));
+                    await Task.Run(() => xdoc.Save(Constants._xmlFilePath));
                 }
                 else
                 {
@@ -119,7 +126,7 @@ namespace Nebula
 
         public static async Task LoadCheckedListBoxFromXMLAsync(Nebula nebula)
         {
-            await _fileLock.WaitAsync(); // ファイルアクセスのロックを取得
+            await Constants.Semaphore.WaitAsync(); // ファイルアクセスのロックを取得
             try
             {
                 await EnsureXmlFileExistsAsync(); // XMLファイルの存在を確認し、必要に応じて作成
@@ -130,11 +137,9 @@ namespace Nebula
                 {
                     try
                     {
-                        using (var stream = new FileStream(_xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (var reader = new StreamReader(stream))
-                        {
-                            xdoc = await XDocument.LoadAsync(reader, LoadOptions.None, CancellationToken.None);
-                        }
+                        using FileStream stream = new FileStream(Constants._xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                        using StreamReader reader = new StreamReader(stream);
+                        xdoc = await XDocument.LoadAsync(reader, LoadOptions.None, CancellationToken.None);
                         break; // 成功した場合はループを抜ける
                     }
                     catch (IOException)
@@ -151,19 +156,19 @@ namespace Nebula
                     }
                 }
 
-                var items = xdoc.Descendants("entry").Select(entry => new CodeData()
+                System.Collections.Generic.List<CodeData> items = xdoc.Descendants("entry").Select(entry => new CodeData()
                 {
                     Name = entry.Element("name")?.Value,
                     Code = entry.Element("code")?.Value,
                     Comment = entry.Element("comment")?.Value,
                     Tag = entry.Element("tag")?.Value,
-                    Enabled = bool.TryParse(entry.Element("enabled")?.Value, out var result) && result
+                    Enabled = bool.TryParse(entry.Element("enabled")?.Value, out bool result) && result
                 }).ToList();
 
                 nebula.CheckedListBoxCode.BeginInvoke(new Action(() =>
                 {
                     nebula.CheckedListBoxCode.Items.Clear();
-                    foreach (var item in items)
+                    foreach (CodeData item in items)
                         nebula.CheckedListBoxCode.Items.Add(item, item.Enabled);
                 }));
             }
@@ -173,18 +178,17 @@ namespace Nebula
             }
             finally
             {
-                _fileLock.Release(); // ファイルアクセスのロックを解放
+                Constants.Semaphore.Release(); // ファイルアクセスのロックを解放
             }
         }
 
         public static async Task SaveXMLAsync(string element, string value, int index)
         {
-            _saveCancellationTokenSource?.Cancel(); // 前回の処理をキャンセル
+            Constants._saveCancellationTokenSource?.Cancel(); // 前回の処理をキャンセル
 
-            _saveCancellationTokenSource = new CancellationTokenSource(); // 新しいトークンソースを作成
-            CancellationToken token = _saveCancellationTokenSource.Token; // トークンを取得
+            CancellationToken token = Constants._saveCancellationTokenSource.Token; // トークンを取得
 
-            await _fileLock.WaitAsync(); // ファイルアクセスのロックを取得
+            await Constants.Semaphore.WaitAsync(); // ファイルアクセスのロックを取得
             try
             {
                 await EnsureXmlFileExistsAsync(); // XMLファイルの存在を確認し、必要に応じて作成
@@ -195,11 +199,9 @@ namespace Nebula
                 {
                     try
                     {
-                        using (var stream = new FileStream(_xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (var reader = new StreamReader(stream))
-                        {
-                            xdoc = await XDocument.LoadAsync(reader, LoadOptions.None, token);
-                        }
+                        using FileStream stream = new FileStream(Constants._xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                        using StreamReader reader = new StreamReader(stream);
+                        xdoc = await XDocument.LoadAsync(reader, LoadOptions.None, token);
                         break; // 成功した場合はループを抜ける
                     }
                     catch (IOException)
@@ -216,13 +218,13 @@ namespace Nebula
                     }
                 }
 
-                var entries = xdoc.Root.Elements("entry").ToList();
+                System.Collections.Generic.List<XElement> entries = xdoc.Root.Elements("entry").ToList();
                 if (index >= 0 && index < entries.Count)
                 {
                     entries[index].Element(element)?.SetValue(value);
 
                     // 一時ファイルのパスを設定
-                    string tempFilePath = _xmlFilePath + ".tmp";
+                    string tempFilePath = Constants._xmlFilePath + ".tmp";
 
                     retryCount = 3;
                     while (retryCount > 0)
@@ -230,14 +232,14 @@ namespace Nebula
                         try
                         {
                             // 一時ファイルに保存
-                            using (var stream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                            using (var writer = new StreamWriter(stream))
+                            using (FileStream stream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                            using (StreamWriter writer = new StreamWriter(stream))
                             {
                                 await xdoc.SaveAsync(writer, SaveOptions.None, token);
                             }
 
                             // 一時ファイルを本来のファイルに置き換え
-                            File.Replace(tempFilePath, _xmlFilePath, null);
+                            File.Replace(tempFilePath, Constants._xmlFilePath, null);
                             break; // 成功した場合はループを抜ける
                         }
                         catch (IOException)
@@ -275,7 +277,7 @@ namespace Nebula
             }
             finally
             {
-                _fileLock.Release(); // ファイルアクセスのロックを解放
+                Constants.Semaphore.Release(); // ファイルアクセスのロックを解放
             }
         }
 

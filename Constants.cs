@@ -31,5 +31,20 @@ namespace Nebula
         /// リソースまたはリソースのプールに同時にアクセスできるスレッドの数を制限
         /// </summary>
         public static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
+
+        /// <summary>
+        /// ディレクトリのパス
+        /// </summary>
+        public static readonly string _directoryPath = "codes";
+
+        /// <summary>
+        /// XMLファイルのパス
+        /// </summary>
+        public static readonly string _xmlFilePath = "codes/codes.xml";
+
+        /// <summary>
+        /// キャンセルトークンソース
+        /// </summary>
+        public static CancellationTokenSource _saveCancellationTokenSource = new CancellationTokenSource();
     }
 }

@@ -73,7 +73,7 @@ namespace Nebula
                 byte[] buffer = new byte[byteCount + 1];
                 int totalBytesRead = 0;
 
-                using (var cts = new CancellationTokenSource(5000))
+                using (CancellationTokenSource cts = new CancellationTokenSource(5000))
                 {
                     while (totalBytesRead < buffer.Length)
                     {
@@ -289,7 +289,7 @@ namespace Nebula
                 });
 
                 // ポインタの処理（非同期）
-                var matchesP = Regex.Matches(currentInput, pointerPattern);
+                MatchCollection matchesP = Regex.Matches(currentInput, pointerPattern);
                 if (matchesP.Count > 0)
                 {
                     foreach (Match match in matchesP)
@@ -326,7 +326,7 @@ namespace Nebula
             // 演算子を特定
             if (expression.Contains("+"))
             {
-                var parts = expression.Split('+'); // "+" で分割
+                string[] parts = expression.Split('+'); // "+" で分割
                 uint left = ParseValue(parts[0]) ?? 0;    // 左の数値
                 uint right = ParseValue(parts[1]) ?? 0;   // 右の数値
 
@@ -334,7 +334,7 @@ namespace Nebula
             }
             else if (expression.Contains("-"))
             {
-                var parts = expression.Split('-'); // "-" で分割
+                string[] parts = expression.Split('-'); // "-" で分割
                 uint left = ParseValue(parts[0]) ?? 0;    // 左の数値
                 uint right = ParseValue(parts[1]) ?? 0;   // 右の数値
 
@@ -379,7 +379,7 @@ namespace Nebula
 
         private static async Task<string> RunProcess(string fileName, string arguments)
         {
-            var process = new Process
+            Process process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -426,17 +426,13 @@ namespace Nebula
         private static async Task ResourceInit(string resourceName, string outputPath)
         {
             // リソースストリームを取得
-            using (Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-            {
-                if (resourceStream == null)
-                    throw new Exception($"リソース '{resourceName}' が見つかりません。");
+            using Stream resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+            if (resourceStream == null)
+                throw new Exception($"リソース '{resourceName}' が見つかりません。");
 
-                // リソースをファイルに非同期で書き込む
-                using (FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 8192, useAsync: true))
-                {
-                    await resourceStream.CopyToAsync(fileStream);
-                }
-            }
+            // リソースをファイルに非同期で書き込む
+            using FileStream fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 8192, useAsync: true);
+            await resourceStream.CopyToAsync(fileStream);
         }
 
         public static async Task<string> AssemblePPC(string assemblyCode)
@@ -487,7 +483,7 @@ namespace Nebula
             errors = await RunProcess(nameListPath, $"\"{tempOutputFileO}\"");
 
             // "U "で始まる未定義のシンボルを抽出
-            var undefinedSymbols = errors
+            List<string> undefinedSymbols = errors
                 .Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)
                 .Where(line => line.Contains(" U "))
                 .Select(line => line.Split(' ').Last())

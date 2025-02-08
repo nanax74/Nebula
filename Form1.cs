@@ -372,8 +372,8 @@ namespace Nebula
                 {
                     client = new TcpClient();
 
-                    var connectTask = client.ConnectAsync(textBoxIP.Text, 7331);
-                    var timeoutTask = Task.Delay(5000);
+                    Task connectTask = client.ConnectAsync(textBoxIP.Text, 7331);
+                    Task timeoutTask = Task.Delay(5000);
 
                     if (await Task.WhenAny(connectTask, timeoutTask) == connectTask)
                     {
@@ -465,7 +465,7 @@ namespace Nebula
 
         private static void ApplySyntaxHighlighting(RichTextBox richTextBox)
         {
-            var keywords = new (string Pattern, Color Color)[]
+            (string Pattern, Color Color)[] keywords = new (string Pattern, Color Color)[]
             {
                 (@"\b(b|bl|bctr|bctrl)\b", Color.Blue),
                 (@"#.*$", Color.Green),
@@ -479,9 +479,9 @@ namespace Nebula
             richTextBox.Select(0, richTextBox.Text.Length);
             richTextBox.SelectionColor = richTextBox.ForeColor;
 
-            foreach (var (pattern, color) in keywords)
+            foreach ((string pattern, Color color) in keywords)
             {
-                var matches = Regex.Matches(richTextBox.Text, pattern, RegexOptions.Multiline);
+                MatchCollection matches = Regex.Matches(richTextBox.Text, pattern, RegexOptions.Multiline);
                 foreach (Match match in matches)
                 {
                     richTextBox.Select(match.Index, match.Length);
@@ -503,7 +503,7 @@ namespace Nebula
             }
 
             _debounceTokenSource = new CancellationTokenSource();
-            var token = _debounceTokenSource.Token;
+            CancellationToken token = _debounceTokenSource.Token;
 
             try
             {
@@ -552,7 +552,7 @@ namespace Nebula
 
             _saveCancellationTokenSource_Code?.Cancel();
             _saveCancellationTokenSource_Code = new CancellationTokenSource();
-            var token = _saveCancellationTokenSource_Code.Token;
+            CancellationToken token = _saveCancellationTokenSource_Code.Token;
 
             try
             {
@@ -583,7 +583,7 @@ namespace Nebula
 
             _saveCancellationTokenSource_Comment?.Cancel();
             _saveCancellationTokenSource_Comment = new CancellationTokenSource();
-            var token = _saveCancellationTokenSource_Comment.Token;
+            CancellationToken token = _saveCancellationTokenSource_Comment.Token;
 
             try
             {
@@ -612,7 +612,7 @@ namespace Nebula
         {
             _saveCancellationTokenSource_AddCode?.Cancel();
             _saveCancellationTokenSource_AddCode = new CancellationTokenSource();
-            var token = _saveCancellationTokenSource_AddCode.Token;
+            CancellationToken token = _saveCancellationTokenSource_AddCode.Token;
 
             try
             {
@@ -627,7 +627,7 @@ namespace Nebula
 
                 await XML.AddCodeAsync(checkedListBoxCode.SelectedIndex, name, code, comment, tag, enabled, token);
 
-                var listItem = new CodeData { Name = name, Code = code, Comment = comment, Tag = tag, Enabled = enabled };
+                CodeData listItem = new CodeData { Name = name, Code = code, Comment = comment, Tag = tag, Enabled = enabled };
                 checkedListBoxCode.Items.Add(listItem, listItem.Enabled);
 
                 SetRichTextBoxEnabled();
@@ -664,16 +664,14 @@ namespace Nebula
 
         private async void RenameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            using (FormInputText formInputText = new FormInputText())
+            using FormInputText formInputText = new FormInputText();
+            formInputText.StartPosition = FormStartPosition.CenterParent;
+            if (formInputText.ShowDialog() == DialogResult.OK)
             {
-                formInputText.StartPosition = FormStartPosition.CenterParent;
-                if (formInputText.ShowDialog() == DialogResult.OK)
-                {
-                    string returnValue = formInputText.ReturnValue;
-                    await XML.SaveXMLAsync("name", returnValue, checkedListBoxCode.SelectedIndex);
-                    await XML.LoadCheckedListBoxFromXMLAsync(this);
-                    UpdateControls();
-                }
+                string returnValue = formInputText.ReturnValue;
+                await XML.SaveXMLAsync("name", returnValue, checkedListBoxCode.SelectedIndex);
+                await XML.LoadCheckedListBoxFromXMLAsync(this);
+                UpdateControls();
             }
         }
 
@@ -682,17 +680,15 @@ namespace Nebula
             CodeData selectedItem = checkedListBoxCode.SelectedItem as CodeData;
             if (selectedItem != null)
             {
-                using (FormInputText formInputText = new FormInputText())
+                using FormInputText formInputText = new FormInputText();
+                formInputText.StartPosition = FormStartPosition.CenterParent;
+                if (formInputText.ShowDialog() == DialogResult.OK)
                 {
-                    formInputText.StartPosition = FormStartPosition.CenterParent;
-                    if (formInputText.ShowDialog() == DialogResult.OK)
-                    {
-                        string returnValue = formInputText.ReturnValue;
-                        listBoxTag.Items.Add(returnValue);
-                        string tagString = string.Join("\n", listBoxTag.Items.Cast<string>());
-                        selectedItem.Tag = tagString;
-                        await XML.SaveXMLAsync("tag", tagString, checkedListBoxCode.SelectedIndex);
-                    }
+                    string returnValue = formInputText.ReturnValue;
+                    listBoxTag.Items.Add(returnValue);
+                    string tagString = string.Join("\n", listBoxTag.Items.Cast<string>());
+                    selectedItem.Tag = tagString;
+                    await XML.SaveXMLAsync("tag", tagString, checkedListBoxCode.SelectedIndex);
                 }
             }
         }
