@@ -77,32 +77,32 @@ namespace Nebula
             //textBoxIP.Text = IPAddr.ToString();
             //comboBoxMVViewMode.Text = Mode.ToString();
 
-            // Nebulaのコードを格納しているアセンブリを取得
+            // Nebulaのコードを格納しているアセンブリを取得する
             Assembly asm = Assembly.GetExecutingAssembly();
 
-            // Nebulaのバージョン情報を取得
+            // Nebulaのバージョン情報を取得する
             FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm.Location);
-            // 「Nebula+」の後にコミット番号？が入っているので削除
+            // 「Nebula+」の後にコミット番号？が入っているので「+」以降の文字列を削除する
             int index = fvi.ProductVersion.IndexOf('+');
             string version = fvi.ProductVersion.Substring(0, index);
 
-            // フォームのタイトルに反映
+            // フォームのタイトルに反映する
             Text = $"{fvi.FileDescription} {version}";
 
-            // 設定ファイルのディレクトリの存在確認
+            // 設定ファイルのディレクトリの存在を確認する
             if (!Directory.Exists(Constants.SETTINGS_FOOTER))
             {
-                // 設定ファイルのディレクトリ作成
+                // 設定ファイルのディレクトリを作成する
                 Directory.CreateDirectory(Constants.SETTINGS_FOOTER);
             }
 
-            // 設定ファイルの存在確認
+            // 設定ファイルの存在を確認する
             if (!File.Exists(Constants.FORM1_FILE_NAME))
             {
-                // 設定ファイルを作成
+                // 設定ファイルを作成する
                 File.Create(Constants.FORM1_FILE_NAME).Close();
 
-                // デフォルトの設定値を作成
+                // デフォルトの設定値を作成する
                 SettingData setting = new SettingData
                 {
                     IPAddress = "192.168.",
@@ -111,27 +111,27 @@ namespace Nebula
                     ViewMode = "Hexadecimal"
                 };
 
-                // シリアライズして設定ファイルへ書き込む文字列を作成
+                // シリアライズして設定ファイルへ書き込む文字列を作成する
                 string jsonStr = JsonConvert.SerializeObject(setting, Formatting.Indented);
-                // 設定ファイルへ書き込み
+                // 設定ファイルへ書き込む
                 await File.WriteAllTextAsync(Constants.FORM1_FILE_NAME, jsonStr);
             }
 
-            // 設定ファイルの内容を文字列として読み込み
+            // 設定ファイルの内容を文字列として読み込む
             string jsonStr1 = await File.ReadAllTextAsync(Constants.FORM1_FILE_NAME);
-            // 読み込んだ文字列をSettingクラスを使ってデシリアライズ(JSON形式のデータからC#が扱えるものに変換すること)
+            // 読み込んだ文字列を設定ファイルのデータ構造定義クラスを使ってデシリアライズする(JSON形式のデータからC#が扱えるものに変換すること)
             SettingData setting1 = JsonConvert.DeserializeObject<SettingData>(jsonStr1);
 
-            // それぞれ反映
+            // 設定値をそれぞれ反映する
             textBoxIP.Text = setting1.IPAddress;
             textBoxMVAddress.Text = setting1.MVAddress;
             checkBoxMVAutoUpdate.Checked = setting1.AutoUpdate;
             comboBoxMVViewMode.Text = setting1.ViewMode;
 
-            // DataGirdViewのチラつきを防止
-            // DataGridViewのTypeを取得
+            // DataGirdViewのチラつきを防止する
+            // DataGridViewのTypeを取得する
             Type dgvtype = typeof(DataGridView);
-            // プロパティ設定の取得
+            // プロパティ設定を取得する
             PropertyInfo dgvPropertyInfo = dgvtype.GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
             // 対象のDataGridViewにtrueをセットする
             dgvPropertyInfo.SetValue(dataGridViewMV, true, null);
@@ -139,6 +139,9 @@ namespace Nebula
             ValidateInputs();
         }
 
+        /// <summary>
+        /// 入力された内容によってテキストボックスの背景色を変更する
+        /// </summary>
         private void ValidateInputs()
         {
             textBoxIP.BackColor = Regex.IsMatch(textBoxIP.Text, Constants.IPRegexPattern) ? Color.Lime : Color.Red;
@@ -146,7 +149,7 @@ namespace Nebula
         }
 
         /// <summary>
-        /// 設定ファイルに設定を保存
+        /// 設定ファイルに設定を保存する
         /// </summary>
         /// <returns><see cref="Task"/></returns>
         private async Task SaveSettingsAsync()

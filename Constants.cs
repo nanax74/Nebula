@@ -8,7 +8,7 @@ namespace Nebula
     public static class Constants
     {
         /// <summary>
-        /// 設定ファイルのパス
+        /// 設定ディレクトリのパス
         /// </summary>
         public const string SETTINGS_FOOTER = "Settings/";
 
@@ -33,7 +33,7 @@ namespace Nebula
         public static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
 
         /// <summary>
-        /// ディレクトリのパス
+        /// コードディレクトリのパス
         /// </summary>
         public const string CODES_FOOTER = "codes/";
 
